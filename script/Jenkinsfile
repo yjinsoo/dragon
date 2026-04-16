@@ -23,7 +23,7 @@ spec:
       projected:
         sources:
           - secret:
-              name: harbor-creds-secret # 생성하신 docker-registry 타입의 Secret 이름
+              name: harbor-ingress-tls # 생성하신 docker-registry 타입의 Secret 이름
               items:
                 - key: .dockerconfigjson
                   path: config.json
