@@ -47,7 +47,7 @@ spec:
                         sh """
                         /kaniko/executor --context `pwd` \
                             --dockerfile `pwd`/dockerfile/Dockerfile \
-                            --destination ${REGISTRY}/${PROJECT}/${IMAGE}:${env.BUILD_NUMBER} \
+                            --destination ${REGISTRY}/${PROJECT}/${IMAGE}:latest \
                             --insecure \
                             --skip-tls-verify
                         """
