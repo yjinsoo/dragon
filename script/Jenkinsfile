@@ -1,0 +1,16 @@
+// ... 생략 (Pod Template 등)
+        stage('Build and Push') {
+            steps {
+                container('kaniko') {
+                    withCredentials([usernamePassword(credentialsId: 'harbor-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+                        sh """
+                        /kaniko/executor --context `pwd` \
+                            --dockerfile `pwd`/dockerfile/Dockerfile \  // 경로 수정!
+                            --destination ${REGISTRY}/${PROJECT}/${IMAGE}:${env.BUILD_NUMBER} \
+                            --insecure --skip-tls-verify
+                        """
+                    }
+                }
+            }
+        }
+// ... 생략
