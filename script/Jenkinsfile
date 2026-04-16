@@ -76,7 +76,6 @@ git url: '[git@github.com](mailto:git@github.com):yjinsoo/dragon-argocd.git',
 branch: 'main',
 credentialsId: 'git-creds'
 
-```
         script {
             sh """
             sed -i "s|${REGISTRY}/${PROJECT}/${IMAGE}:.*|${REGISTRY}/${PROJECT}/${IMAGE}:${env.BUILD_NUMBER}|g" yaml/nginx-deployment.yaml
@@ -92,8 +91,6 @@ credentialsId: 'git-creds'
         }
     }
 }
-```
-
 }
 
 }
