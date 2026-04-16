@@ -60,7 +60,7 @@ spec:
     steps {
         // 1. 배포용 레포지토리를 SSH 주소로 클론 (git-creds는 SSH Private Key여야 함)
         dir('deploy-repo') {
-            git url: 'git@git.test.com:user/nginx-deploy.git',
+            git url: 'git@github.com:yjinsoo/dragon-argocd.git',
                 branch: 'main',
                 credentialsId: 'git-creds'
             
@@ -68,14 +68,14 @@ spec:
                 sh """
                 # 2. YAML 파일 내 이미지 태그 업데이트
                 # sed 구분자를 | 로 사용해 URL 내 슬래시와 충돌 방지
-                sed -i "s|${REGISTRY}/${PROJECT}/${IMAGE}:.*|${REGISTRY}/${PROJECT}/${IMAGE}:${env.BUILD_NUMBER}|g" manifests/deployment.yaml
+                sed -i "s|${REGISTRY}/${PROJECT}/${IMAGE}:.*|${REGISTRY}/${PROJECT}/${IMAGE}:${env.BUILD_NUMBER}|g" yaml/nginx-deployment.yaml
                 
                 # 3. 변경 사항이 있을 때만 Push
                 if [ -n "\$(git status --porcelain)" ]; then
                     git config user.email "jenkins@test.com"
                     git config user.name "jenkins"
                     
-                    git add manifests/deployment.yaml
+                    git add yaml/nginx-deployment.yaml
                     git commit -m "chore: update image tag to ${env.BUILD_NUMBER} [skip ci]"
                     
                     # SSH Key를 사용하므로 추가 인증 없이 바로 push 가능
