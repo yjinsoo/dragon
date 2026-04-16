@@ -54,35 +54,40 @@ spec:
                     }
                 }
             }
-        steps {
-        // 1. 배포용 레포지토리를 별도 폴더(deploy-repo)에 클론
+      
+ }
+    stage('Update Remote Manifest') {
+    steps {
+        // 1. 배포용 레포지토리를 SSH 주소로 클론 (git-creds는 SSH Private Key여야 함)
         dir('deploy-repo') {
-            git url: 'http://git.test.com/user/nginx-deploy.git',
+            git url: 'git@git.test.com:user/nginx-deploy.git',
                 branch: 'main',
                 credentialsId: 'git-creds'
             
             script {
-                // 2. 클론된 폴더 안의 YAML 파일 수정
-                // 변수 처리를 위해 큰따옴표(")를 사용하고 shell 변수와 구분하세요.
                 sh """
-                sed -i "s|${REGISTRY}/${PROJECT}/${IMAGE}:.*|${REGISTRY}/${PROJECT}/${IMAGE}:${env.BUILD_NUMBER}|g" yaml/deployment.yaml
+                # 2. YAML 파일 내 이미지 태그 업데이트
+                # sed 구분자를 | 로 사용해 URL 내 슬래시와 충돌 방지
+                sed -i "s|${REGISTRY}/${PROJECT}/${IMAGE}:.*|${REGISTRY}/${PROJECT}/${IMAGE}:${env.BUILD_NUMBER}|g" manifests/deployment.yaml
                 
-                # 3. 변경 사항 확인 및 Push
+                # 3. 변경 사항이 있을 때만 Push
                 if [ -n "\$(git status --porcelain)" ]; then
                     git config user.email "jenkins@test.com"
                     git config user.name "jenkins"
-                    git add .
-                    git commit -m "image update: ${IMAGE}:${env.BUILD_NUMBER}"
+                    
+                    git add manifests/deployment.yaml
+                    git commit -m "chore: update image tag to ${env.BUILD_NUMBER} [skip ci]"
+                    
+                    # SSH Key를 사용하므로 추가 인증 없이 바로 push 가능
                     git push origin main
                 else
-                    echo "No changes detected, skipping push."
+                    echo "No changes detected. Manifest is already up to date."
                 fi
                 """
             }
         }
     }
-            
- }
+}
 }
     
     post {
