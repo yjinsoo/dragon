@@ -54,8 +54,36 @@ spec:
                     }
                 }
             }
+        steps {
+        // 1. 배포용 레포지토리를 별도 폴더(deploy-repo)에 클론
+        dir('deploy-repo') {
+            git url: 'http://git.test.com/user/nginx-deploy.git',
+                branch: 'main',
+                credentialsId: 'git-creds'
+            
+            script {
+                // 2. 클론된 폴더 안의 YAML 파일 수정
+                // 변수 처리를 위해 큰따옴표(")를 사용하고 shell 변수와 구분하세요.
+                sh """
+                sed -i "s|${REGISTRY}/${PROJECT}/${IMAGE}:.*|${REGISTRY}/${PROJECT}/${IMAGE}:${env.BUILD_NUMBER}|g" yaml/deployment.yaml
+                
+                # 3. 변경 사항 확인 및 Push
+                if [ -n "\$(git status --porcelain)" ]; then
+                    git config user.email "jenkins@test.com"
+                    git config user.name "jenkins"
+                    git add .
+                    git commit -m "image update: ${IMAGE}:${env.BUILD_NUMBER}"
+                    git push origin main
+                else
+                    echo "No changes detected, skipping push."
+                fi
+                """
+            }
         }
     }
+            
+ }
+}
     
     post {
         success {
