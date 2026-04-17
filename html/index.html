@@ -8,12 +8,12 @@
 </head>
 <body class="bg-slate-50 min-h-screen flex items-center justify-center p-4">
 
-    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-100">
+    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-100 my-8">
         <h1 class="text-2xl font-extrabold mb-6 text-slate-800 flex items-center gap-2">
             <span>🧾</span> 영수증 정산 폼
         </h1>
         
-        <form id="receiptForm" class="space-y-5">
+        <form id="receiptForm" class="space-y-6">
             <div class="grid grid-cols-2 gap-4">
                 <div class="col-span-2">
                     <label class="block text-sm font-semibold text-slate-600 mb-1">집행 일자</label>
@@ -29,13 +29,23 @@
                 </div>
             </div>
 
+            <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
+                <label class="block text-sm font-bold text-blue-800 mb-3">집행자 선택 (1명 필수)</label>
+                <div id="executorContainer" class="grid grid-cols-3 gap-2">
+                    </div>
+            </div>
+
             <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
                 <label class="block text-sm font-bold text-slate-700 mb-3 flex justify-between">
-                    참석 인원 선택 
-                    <span class="text-indigo-600"><span id="pCount">0</span> / 9명</span>
+                    참석 인원 선택 <span class="text-indigo-600"><span id="pCount">0</span>명</span>
                 </label>
-                
                 <div id="memberContainer" class="grid grid-cols-3 gap-2">
+                    </div>
+            </div>
+
+            <div class="bg-orange-50 p-4 rounded-xl border border-orange-100">
+                <label class="block text-sm font-bold text-orange-800 mb-3">승인자 선택 (1명 필수)</label>
+                <div id="approverContainer" class="grid grid-cols-2 gap-2">
                     </div>
             </div>
 
@@ -46,54 +56,58 @@
     </div>
 
     <script>
-        // 고정된 9명의 명단 (본인 팀원 이름으로 수정하세요)
-        const teamMembers = [
-            "강백호", "서태웅", "송태섭", 
-            "정대만", "채치수", "권준호", 
-            "이한나", "안감독", "양호열"
-        ];
+        const teamMembers = ["강백호", "서태웅", "송태섭", "정대만", "채치수", "권준호", "이한나", "안감독", "양호열"];
+        const approvers = ["교장선생님", "이사장님"];
 
-        // 페이지 로드 시 체크박스 생성
-        const container = document.getElementById('memberContainer');
-        teamMembers.forEach(name => {
+        // 헬퍼: 카드형 체크박스/라디오 생성기
+        function createCard(name, type, groupName, containerId, onChangeFn) {
+            const container = document.getElementById(containerId);
             const label = document.createElement('label');
-            label.className = "flex items-center p-2 bg-white border rounded-lg cursor-pointer hover:border-indigo-300 transition-colors has-[:checked]:bg-indigo-50 has-[:checked]:border-indigo-500";
+            label.className = `flex items-center p-2 bg-white border rounded-lg cursor-pointer hover:border-indigo-300 transition-colors has-[:checked]:bg-indigo-50 has-[:checked]:border-indigo-500`;
             label.innerHTML = `
-                <input type="checkbox" name="participant" value="${name}" class="hidden" onchange="updateCount()">
+                <input type="${type}" name="${groupName}" value="${name}" class="hidden" onchange="${onChangeFn}">
                 <span class="text-sm text-slate-700 mx-auto font-medium">${name}</span>
             `;
             container.appendChild(label);
-        });
+        }
 
-        // 오늘 날짜 세팅
+        // 초기화
+        teamMembers.forEach(name => createCard(name, 'radio', 'executor', 'executorContainer', ''));
+        teamMembers.forEach(name => createCard(name, 'checkbox', 'participant', 'memberContainer', 'updateCount()'));
+        approvers.forEach(name => createCard(name, 'radio', 'approver', 'approverContainer', ''));
+
         document.getElementById('date').value = new Date().toISOString().substring(0, 10);
 
-        // 선택 인원수 업데이트
         function updateCount() {
             const checked = document.querySelectorAll('input[name="participant"]:checked');
             document.getElementById('pCount').innerText = checked.length;
         }
 
-        // 폼 제출 시 데이터 수집 예시
+        // 폼 제출 시 예외처리 및 데이터 수집
         document.getElementById('receiptForm').onsubmit = function(e) {
             e.preventDefault();
-            const selectedNames = Array.from(document.querySelectorAll('input[name="participant"]:checked')).map(cb => cb.value);
-            
-            if(selectedNames.length === 0) {
-                alert("참석자를 한 명 이상 선택해주세요!");
-                return;
-            }
+
+            const executor = document.querySelector('input[name="executor"]:checked')?.value;
+            const participants = Array.from(document.querySelectorAll('input[name="participant"]:checked')).map(cb => cb.value);
+            const approver = document.querySelector('input[name="approver"]:checked')?.value;
+
+            // 예외처리 (Validation)
+            if (!executor) return alert("❌ 집행자를 선택해주세요.");
+            if (participants.length === 0) return alert("❌ 참석자를 최소 1명 이상 선택해주세요.");
+            if (!approver) return alert("❌ 승인자를 선택해주세요.");
 
             const payload = {
                 date: document.getElementById('date').value,
                 amount: document.getElementById('amount').value,
                 vendor: document.getElementById('vendor').value,
-                participants: selectedNames,
-                count: selectedNames.length
+                executor: executor,
+                participants: participants,
+                participantCount: participants.length,
+                approver: approver
             };
 
-            console.log("전송될 데이터:", payload);
-            alert(`${payload.count}명의 영수증 데이터를 전송할 준비가 되었습니다!`);
+            console.log("최종 데이터:", payload);
+            alert(`✅ 확인 완료!\n집행자: ${executor}\n참석: ${participants.length}명\n승인자: ${approver}\n\n이제 백엔드로 메일을 보냅니다.`);
         };
     </script>
 </body>
