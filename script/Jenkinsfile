@@ -72,7 +72,7 @@ GIT_SSH_COMMAND = "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=
 }
 steps {
 dir('deploy-repo') {
-git url: '[git@github.com](mailto:git@github.com):yjinsoo/dragon-argocd.git',
+git url: 'git@github.com:yjinsoo/dragon-argocd.git',
 branch: 'main',
 credentialsId: 'git-creds'
 
