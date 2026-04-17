@@ -56,42 +56,41 @@ spec:
             }
       
  }
-stage('Prepare SSH') {
-steps {
-sh '''
-mkdir -p ~/.ssh
-ssh-keyscan github.com >> ~/.ssh/known_hosts
-chmod 600 ~/.ssh/known_hosts
-'''
-}
-}
+    stage('Prepare SSH') {
+        steps {
+                sh '''
+                mkdir -p ~/.ssh
+                ssh-keyscan github.com >> ~/.ssh/known_hosts
+                chmod 600 ~/.ssh/known_hosts
+                '''
+       }
+    }
 
-stage('Update Remote Manifest') {
-environment {
-GIT_SSH_COMMAND = "ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no"
-}
-steps {
-dir('deploy-repo') {
-git url: 'git@github.com:yjinsoo/dragon-argocd.git',
-branch: 'main',
-credentialsId: 'git-creds'
+    stage('Update Remote Manifest') {
+        steps {
+            sshagent(credentials: ['git-creds']) {
+                dir('deploy-repo') {
+                git url: 'git@github.com:yjinsoo/dragon-argocd.git',
+                branch: 'main',
+                credentialsId: 'git-creds'
 
-        script {
-            sh """
-            sed -i "s|${REGISTRY}/${PROJECT}/${IMAGE}:.*|${REGISTRY}/${PROJECT}/${IMAGE}:${env.BUILD_NUMBER}|g" yaml/nginx-deployment.yaml
+                        script {
+                            sh """
+                            sed -i "s|${REGISTRY}/${PROJECT}/${IMAGE}:.*|${REGISTRY}/${PROJECT}/${IMAGE}:${env.BUILD_NUMBER}|g" yaml/nginx-deployment.yaml
             
-            if [ -n "\$(git status --porcelain)" ]; then
-                git config user.email "jenkins@test.com"
-                git config user.name "jenkins"
-                git add yaml/nginx-deployment.yaml
-                git commit -m "chore: update image tag to ${env.BUILD_NUMBER} [skip ci]"
-                git push origin main
-            fi
-            """
+                            if [ -n "\$(git status --porcelain)" ]; then
+                                git config user.email "jenkins@test.com"
+                                git config user.name "jenkins"
+                                git add yaml/nginx-deployment.yaml
+                                git commit -m "chore: update image tag to ${env.BUILD_NUMBER} [skip ci]"
+                                git push origin main
+                            fi
+                            """
+                        }
+                    }
+            }
         }
     }
-}
-}
 
 }
     
