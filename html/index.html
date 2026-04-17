@@ -19,34 +19,38 @@
                     <label class="block text-sm font-semibold text-slate-600 mb-1">집행 일자</label>
                     <input type="date" id="date" required class="w-full rounded-lg border-slate-200 shadow-sm focus:ring-2 focus:ring-indigo-500 p-2.5 border outline-none">
                 </div>
+                <div class="col-span-2">
+                    <label class="block text-sm font-semibold text-slate-600 mb-1">집행처</label>
+                    <input type="text" id="vendor" placeholder="식당명 또는 매장명" required class="w-full rounded-lg border-slate-200 shadow-sm focus:ring-2 focus:ring-indigo-500 p-2.5 border outline-none">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
                 <div>
-                    <label class="block text-sm font-semibold text-slate-600 mb-1">금액 (원)</label>
-                    <input type="number" id="amount" placeholder="0" required class="w-full rounded-lg border-slate-200 shadow-sm focus:ring-2 focus:ring-indigo-500 p-2.5 border outline-none">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">식비 (원)</label>
+                    <input type="text" id="mealExp" placeholder="0" class="w-full rounded-lg border-slate-200 shadow-sm focus:ring-2 focus:ring-indigo-500 p-2.5 border outline-none text-right font-mono" oninput="formatCurrency(this)">
                 </div>
                 <div>
-                    <label class="block text-sm font-semibold text-slate-600 mb-1">집행처</label>
-                    <input type="text" id="vendor" placeholder="식당명 등" required class="w-full rounded-lg border-slate-200 shadow-sm focus:ring-2 focus:ring-indigo-500 p-2.5 border outline-none">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">간식비 (원)</label>
+                    <input type="text" id="snackExp" placeholder="0" class="w-full rounded-lg border-slate-200 shadow-sm focus:ring-2 focus:ring-indigo-500 p-2.5 border outline-none text-right font-mono" oninput="formatCurrency(this)">
                 </div>
             </div>
 
             <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
                 <label class="block text-sm font-bold text-blue-800 mb-3">집행자 선택 (1명 필수)</label>
-                <div id="executorContainer" class="grid grid-cols-3 gap-2">
-                    </div>
+                <div id="executorContainer" class="grid grid-cols-3 gap-2"></div>
+            </div>
+
+            <div class="bg-orange-50 p-4 rounded-xl border border-orange-100">
+                <label class="block text-sm font-bold text-orange-800 mb-3">승인자 선택 (1명 필수)</label>
+                <div id="approverContainer" class="grid grid-cols-2 gap-2"></div>
             </div>
 
             <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
                 <label class="block text-sm font-bold text-slate-700 mb-3 flex justify-between">
                     참석 인원 선택 <span class="text-indigo-600"><span id="pCount">0</span>명</span>
                 </label>
-                <div id="memberContainer" class="grid grid-cols-3 gap-2">
-                    </div>
-            </div>
-
-            <div class="bg-orange-50 p-4 rounded-xl border border-orange-100">
-                <label class="block text-sm font-bold text-orange-800 mb-3">승인자 선택 (1명 필수)</label>
-                <div id="approverContainer" class="grid grid-cols-2 gap-2">
-                    </div>
+                <div id="memberContainer" class="grid grid-cols-3 gap-2"></div>
             </div>
 
             <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all active:scale-95">
@@ -59,13 +63,23 @@
         const teamMembers = ["강백호", "서태웅", "송태섭", "정대만", "채치수", "권준호", "이한나", "안감독", "양호열"];
         const approvers = ["교장선생님", "이사장님"];
 
+        // 천 단위 콤마 포맷팅 함수
+        function formatCurrency(input) {
+            let value = input.value.replace(/[^0-9]/g, ""); // 숫자 외 제거
+            if (value) {
+                input.value = Number(value).toLocaleString();
+            } else {
+                input.value = "";
+            }
+        }
+
         // 헬퍼: 카드형 체크박스/라디오 생성기
         function createCard(name, type, groupName, containerId, onChangeFn) {
             const container = document.getElementById(containerId);
             const label = document.createElement('label');
             label.className = `flex items-center p-2 bg-white border rounded-lg cursor-pointer hover:border-indigo-300 transition-colors has-[:checked]:bg-indigo-50 has-[:checked]:border-indigo-500`;
             label.innerHTML = `
-                <input type="${type}" name="${groupName}" value="${name}" class="hidden" onchange="${onChangeFn}">
+                <input type="${type}" name="${groupName}" value="${name}" class="hidden" ${onChangeFn ? `onchange="${onChangeFn}"` : ""}>
                 <span class="text-sm text-slate-700 mx-auto font-medium">${name}</span>
             `;
             container.appendChild(label);
@@ -73,8 +87,8 @@
 
         // 초기화
         teamMembers.forEach(name => createCard(name, 'radio', 'executor', 'executorContainer', ''));
-        teamMembers.forEach(name => createCard(name, 'checkbox', 'participant', 'memberContainer', 'updateCount()'));
         approvers.forEach(name => createCard(name, 'radio', 'approver', 'approverContainer', ''));
+        teamMembers.forEach(name => createCard(name, 'checkbox', 'participant', 'memberContainer', 'updateCount()'));
 
         document.getElementById('date').value = new Date().toISOString().substring(0, 10);
 
@@ -83,31 +97,36 @@
             document.getElementById('pCount').innerText = checked.length;
         }
 
-        // 폼 제출 시 예외처리 및 데이터 수집
         document.getElementById('receiptForm').onsubmit = function(e) {
             e.preventDefault();
 
             const executor = document.querySelector('input[name="executor"]:checked')?.value;
-            const participants = Array.from(document.querySelectorAll('input[name="participant"]:checked')).map(cb => cb.value);
             const approver = document.querySelector('input[name="approver"]:checked')?.value;
+            const participants = Array.from(document.querySelectorAll('input[name="participant"]:checked')).map(cb => cb.value);
+            
+            // 콤마 제거 후 숫자 데이터 추출
+            const mealExp = document.getElementById('mealExp').value.replace(/,/g, "") || 0;
+            const snackExp = document.getElementById('snackExp').value.replace(/,/g, "") || 0;
 
-            // 예외처리 (Validation)
             if (!executor) return alert("❌ 집행자를 선택해주세요.");
-            if (participants.length === 0) return alert("❌ 참석자를 최소 1명 이상 선택해주세요.");
             if (!approver) return alert("❌ 승인자를 선택해주세요.");
+            if (participants.length === 0) return alert("❌ 참석자를 1명 이상 선택해주세요.");
+            if (mealExp == 0 && snackExp == 0) return alert("❌ 금액을 입력해주세요.");
 
             const payload = {
                 date: document.getElementById('date').value,
-                amount: document.getElementById('amount').value,
                 vendor: document.getElementById('vendor').value,
+                mealExp: Number(mealExp),
+                snackExp: Number(snackExp),
+                totalExp: Number(mealExp) + Number(snackExp),
                 executor: executor,
+                approver: approver,
                 participants: participants,
-                participantCount: participants.length,
-                approver: approver
+                count: participants.length
             };
 
-            console.log("최종 데이터:", payload);
-            alert(`✅ 확인 완료!\n집행자: ${executor}\n참석: ${participants.length}명\n승인자: ${approver}\n\n이제 백엔드로 메일을 보냅니다.`);
+            console.log("전송 데이터:", payload);
+            alert(`✅ 발송 준비 완료!\n총액: ${payload.totalExp.toLocaleString()}원\n집행자: ${executor}\n승인자: ${approver}`);
         };
     </script>
 </body>
