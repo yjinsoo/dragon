@@ -54,26 +54,20 @@
             </div>
 
             <button type="submit" class="w-full bg-indigo-600 text-white font-bold py-4 rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all active:scale-95">
-                📧 Gmail로 영수증 발송
+                📧 데이터 전송 테스트
             </button>
         </form>
     </div>
 
     <script>
         const teamMembers = ["강백호", "서태웅", "송태섭", "정대만", "채치수", "권준호", "이한나", "안감독", "양호열"];
-        const approvers = ["교장선생님", "이사장님"];
+        const approvers = ["최원석", "이사장님"];
 
-        // 천 단위 콤마 포맷팅 함수
         function formatCurrency(input) {
-            let value = input.value.replace(/[^0-9]/g, ""); // 숫자 외 제거
-            if (value) {
-                input.value = Number(value).toLocaleString();
-            } else {
-                input.value = "";
-            }
+            let value = input.value.replace(/[^0-9]/g, "");
+            input.value = value ? Number(value).toLocaleString() : "";
         }
 
-        // 헬퍼: 카드형 체크박스/라디오 생성기
         function createCard(name, type, groupName, containerId, onChangeFn) {
             const container = document.getElementById(containerId);
             const label = document.createElement('label');
@@ -85,7 +79,6 @@
             container.appendChild(label);
         }
 
-        // 초기화
         teamMembers.forEach(name => createCard(name, 'radio', 'executor', 'executorContainer', ''));
         approvers.forEach(name => createCard(name, 'radio', 'approver', 'approverContainer', ''));
         teamMembers.forEach(name => createCard(name, 'checkbox', 'participant', 'memberContainer', 'updateCount()'));
@@ -97,36 +90,41 @@
             document.getElementById('pCount').innerText = checked.length;
         }
 
-        document.getElementById('receiptForm').onsubmit = function(e) {
+        document.getElementById('receiptForm').onsubmit = async function(e) {
             e.preventDefault();
-
             const executor = document.querySelector('input[name="executor"]:checked')?.value;
             const approver = document.querySelector('input[name="approver"]:checked')?.value;
             const participants = Array.from(document.querySelectorAll('input[name="participant"]:checked')).map(cb => cb.value);
-            
-            // 콤마 제거 후 숫자 데이터 추출
             const mealExp = document.getElementById('mealExp').value.replace(/,/g, "") || 0;
             const snackExp = document.getElementById('snackExp').value.replace(/,/g, "") || 0;
-
-            if (!executor) return alert("❌ 집행자를 선택해주세요.");
-            if (!approver) return alert("❌ 승인자를 선택해주세요.");
-            if (participants.length === 0) return alert("❌ 참석자를 1명 이상 선택해주세요.");
-            if (mealExp == 0 && snackExp == 0) return alert("❌ 금액을 입력해주세요.");
 
             const payload = {
                 date: document.getElementById('date').value,
                 vendor: document.getElementById('vendor').value,
                 mealExp: Number(mealExp),
                 snackExp: Number(snackExp),
-                totalExp: Number(mealExp) + Number(snackExp),
                 executor: executor,
                 approver: approver,
                 participants: participants,
                 count: participants.length
             };
 
-            console.log("전송 데이터:", payload);
-            alert(`✅ 발송 준비 완료!\n총액: ${payload.totalExp.toLocaleString()}원\n집행자: ${executor}\n승인자: ${approver}`);
+            try {
+                // 상대 경로 사용하여 백엔드 호출
+                const response = await fetch('/api/send-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                    alert("✅ 데이터가 백엔드로 전송되었습니다!");
+                } else {
+                    alert("❌ 전송 실패!");
+                }
+            } catch (err) {
+                alert("❌ 에러 발생: " + err.message);
+            }
         };
     </script>
 </body>
